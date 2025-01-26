@@ -1,0 +1,67 @@
+name: Deploy Telegram Bot
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  NODE_VERSION: 22
+  SERVER_IP: 193.109.69.58
+  BOT_DIR: /var/www/telegram-bot-money-limiter
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setting up SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${SSH_KEY}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "SSH setup completed."
+
+      - name: Creating directory on the server
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@${{ env.SERVER_IP }} << EOF
+          mkdir -p "${{ env.BOT_DIR }}"
+          chmod -R 755 "${{ env.BOT_DIR }}"
+          echo "Directory created and permissions set."
+          EOF
+
+      - name: Uploading bot files
+        run: |
+          rsync -az --quiet --human-readable --exclude=node_modules --exclude=.env -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+            ./ root@${{ env.SERVER_IP }}:${{ env.BOT_DIR }}/
+
+      - name: Install dependencies on server
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@${{ env.SERVER_IP }} << EOF
+          cd "${{ env.BOT_DIR }}"
+          npm install --production
+          echo "Dependencies installed."
+          EOF
+
+      - name: Restart bot with PM2
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@${{ env.SERVER_IP }} << EOF
+          pm2 delete telegram-bot || true
+          NODE_ENV=production pm2 start "${{ env.BOT_DIR }}/src/bot.ts" --name telegram-bot --interpreter ./node_modules/.bin/ts-node
+          EOF
+
+      - name: Confirm deployment completion
+        run: |
+          echo "===================================="
+          echo "DEPLOYMENT COMPLETED SUCCESSFULLY!"
+          echo "===================================="
