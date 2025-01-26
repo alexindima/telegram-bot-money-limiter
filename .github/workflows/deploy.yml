@@ -50,7 +50,8 @@ jobs:
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@${{ env.SERVER_IP }} << EOF
           cd "${{ env.BOT_DIR }}"
           npm install --production
-          echo "Dependencies installed."
+          npm install ts-node
+          echo "Dependencies installed, including ts-node."
           EOF
 
       - name: Restart bot with PM2
