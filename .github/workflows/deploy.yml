@@ -57,14 +57,18 @@ jobs:
       - name: Create .env file
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@${{ env.SERVER_IP }} << EOF
-          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" > /var/www/telegram-bot-money-limiter/.env
+          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" > ${BOT_DIR}/.env
+          echo "Environment variables set."
           EOF
 
-      - name: Restart bot with PM2
+      - name: Start bot with PM2 using ecosystem.config.js
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@${{ env.SERVER_IP }} << EOF
+          cd "${{ env.BOT_DIR }}"
           pm2 delete telegram-bot || true
-          NODE_ENV=production pm2 start "${{ env.BOT_DIR }}/dist/bot.js" --name telegram-bot
+          pm2 start ecosystem.config.js --only telegram-bot
+          pm2 save
+          echo "Bot started with PM2."
           EOF
 
       - name: Confirm deployment completion
