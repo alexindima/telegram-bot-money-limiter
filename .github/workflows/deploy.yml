@@ -54,6 +54,12 @@ jobs:
           echo "Dependencies installed and project built."
           EOF
 
+      - name: Create .env file
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@${{ env.SERVER_IP }} << EOF
+          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" > /var/www/telegram-bot-money-limiter/dist/.env
+          EOF
+
       - name: Restart bot with PM2
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@${{ env.SERVER_IP }} << EOF
