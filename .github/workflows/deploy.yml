@@ -40,25 +40,25 @@ jobs:
           echo "Directory created and permissions set."
           EOF
 
-      - name: Uploading bot files
+      - name: Uploading source files
         run: |
-          rsync -az --quiet --human-readable --exclude=node_modules --exclude=.env -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+          rsync -az --quiet --human-readable --exclude=node_modules --exclude=dist --exclude=.env -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
             ./ root@${{ env.SERVER_IP }}:${{ env.BOT_DIR }}/
 
-      - name: Install dependencies on server
+      - name: Install dependencies and build project
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@${{ env.SERVER_IP }} << EOF
           cd "${{ env.BOT_DIR }}"
           npm install --production
-          npm install ts-node
-          echo "Dependencies installed, including ts-node."
+          npm run build
+          echo "Dependencies installed and project built."
           EOF
 
       - name: Restart bot with PM2
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@${{ env.SERVER_IP }} << EOF
           pm2 delete telegram-bot || true
-          NODE_ENV=production pm2 start "${{ env.BOT_DIR }}/src/bot.ts" --name telegram-bot --interpreter "${{ env.BOT_DIR }}/node_modules/.bin/ts-node"
+          NODE_ENV=production pm2 start "${{ env.BOT_DIR }}/dist/bot.js" --name telegram-bot
           EOF
 
       - name: Confirm deployment completion

@@ -4,7 +4,9 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "npx ts-node src/bot.ts",
+        "build": "tsc",
+        "start": "node dist/bot.js",
+        "dev": "npx ts-node src/bot.ts",
         "init-db": "npx ts-node src/db.ts"
     },
     "keywords": [],
