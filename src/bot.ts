@@ -155,10 +155,17 @@ bot.command('refund', (ctx) => {
         return;
     }
 
-    const newTotalAmount = user.totalAmount + refundAmount;
-    updateUser(userId, newTotalAmount, JSON.parse(user.purchases || '[]'), user.timezoneOffset);
+    const purchases = JSON.parse(user.purchases || '[]') as number[];
+    purchases.push(-refundAmount);
 
-    ctx.reply(`Сумма ${refundAmount} возвращена. Текущий остаток: ${newTotalAmount.toFixed(2)}.`);
+    const newTotalAmount = user.totalAmount + refundAmount;
+    updateUser(userId, newTotalAmount, purchases, user.timezoneOffset);
+
+    ctx.reply(
+        `Сумма ${refundAmount.toFixed(2)} добавлена как возврат.\n` +
+        `Текущий остаток: ${newTotalAmount.toFixed(2)}.\n` +
+        `Возврат будет виден в списке покупок как отрицательная сумма.`
+    );
 });
 
 bot.command('setlimit', (ctx) => {
