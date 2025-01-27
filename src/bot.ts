@@ -36,11 +36,43 @@ bot.command('help', (ctx) => {
         /refund <сумма> - Вернуть сумму в бюджет. Пример: /refund 20
         /setlimit <сумма> - Изменить общий лимит бюджета. Пример: /setlimit 500
         /setdays <дни> - Изменить количество оставшихся дней. Пример: /setdays 10
-        /stop - Удалить все данные и остановить работу с ботом.
+        /settimezone <±HH:MM> - Установить часовой пояс. Пример: /settimezone +03:30
         /report - Показать список всех покупок.
+        /info - Показать информацию о вашем аккаунте.
+        /stop - Удалить все данные и остановить работу с ботом.
         /help - Показать список доступных команд.
     `;
     ctx.reply(helpMessage);
+});
+
+bot.command('info', (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    const user = getUser(userId);
+    if (!user) {
+        ctx.reply('Данные не найдены. Сначала введи команду /start.');
+        return;
+    }
+
+    const timezoneOffset = user.timezoneOffset || DEFAULT_TIMEZONE;
+    const formattedTimezone = `${timezoneOffset >= 0 ? '+' : ''}${Math.floor(timezoneOffset)}:${Math.abs(timezoneOffset % 1 * 60)
+        .toString()
+        .padStart(2, '0')}`;
+
+    const purchases = JSON.parse(user.purchases || '[]') as number[];
+    const totalSpent = purchases.reduce((sum, purchase) => sum + purchase, 0);
+
+    const response = `
+        Информация о вашем аккаунте:
+        - Часовой пояс: UTC${formattedTimezone}
+        - Остаток средств: ${user.totalAmount.toFixed(2)}
+        - Дней в бюджете: ${user.days}
+        - Общая сумма расходов: ${totalSpent.toFixed(2)}
+        - Количество покупок: ${purchases.length}
+    `;
+
+    ctx.reply(response);
 });
 
 bot.command('report', (ctx) => {
@@ -93,8 +125,14 @@ bot.command('status', (ctx) => {
 
     let response =
         `Ваш текущий остаток: ${user.totalAmount.toFixed(2)}.\n` +
-        `Средний бюджет на оставшиеся ${remainingDays} дней: ${dailyBudget}.\n` +
-        `До следующего дня осталось: ${hoursUntilNextDay} часов и ${minutesUntilNextDay} минут.`;
+        `Средний бюджет на оставшиеся ${remainingDays} дней: ${dailyBudget}.`;
+
+    if (remainingDays > 1) {
+        const futureDailyBudget = (user.totalAmount / (remainingDays - 1 || 1)).toFixed(2);
+        response += `\nСредний бюджет на следующие дни без новых покупок сегодня: ${futureDailyBudget}.`;
+    }
+
+    response += `\nДо следующего дня осталось: ${hoursUntilNextDay} часов и ${minutesUntilNextDay} минут.`;
 
     ctx.reply(response);
 });
@@ -194,7 +232,6 @@ bot.command('settimezone', (ctx) => {
         return;
     }
 
-    // Рассчитываем смещение в часах
     let timezoneOffset = hours + minutes / 60;
     if (sign === '-') {
         timezoneOffset = -timezoneOffset;
@@ -238,7 +275,6 @@ bot.hears(/.*/, (ctx) => {
 
     const user = getUser(userId);
     if (!user) {
-        saveUser(userId, 0, 0, DEFAULT_TIMEZONE);
         ctx.reply('Сначала введи команду /start.');
         return;
     }

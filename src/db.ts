@@ -11,13 +11,9 @@ db.exec(`
         totalAmount REAL NOT NULL,
         days INTEGER NOT NULL,
         startDate TEXT NOT NULL,
-        purchases TEXT DEFAULT '[]'
+        purchases TEXT DEFAULT '[]',
+        timezoneOffset REAL DEFAULT 4
     )
-`);
-
-db.exec(`
-    ALTER TABLE users
-    ADD COLUMN timezoneOffset REAL DEFAULT 4
 `);
 
 export function saveUser(id: number, totalAmount: number, days: number, timezoneOffset: number): void {
