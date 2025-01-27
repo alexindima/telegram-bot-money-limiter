@@ -15,26 +15,37 @@ db.exec(`
     )
 `);
 
-export function saveUser(id: number, totalAmount: number, days: number): void {
+db.exec(`
+    ALTER TABLE users
+    ADD COLUMN timezoneOffset REAL DEFAULT 4
+`);
+
+export function saveUser(id: number, totalAmount: number, days: number, timezoneOffset: number): void {
     const startDate = new Date().toISOString();
     const query = `
-        INSERT INTO users (id, totalAmount, days, startDate)
-        VALUES (?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET totalAmount = ?, days = ?, startDate = ?`;
-    db.prepare(query).run(id, totalAmount, days, startDate, totalAmount, days, startDate);
+        INSERT INTO users (id, totalAmount, days, startDate, timezoneOffset)
+        VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET totalAmount = ?, days = ?, startDate = ?, timezoneOffset = ?`;
+    db.prepare(query).run(id, totalAmount, days, startDate, timezoneOffset, totalAmount, days, startDate, timezoneOffset);
 }
+
 
 export function getUser(id: number): User {
     const query = `SELECT * FROM users WHERE id = ?`;
     return db.prepare(query).get(id) as User;
 }
 
-export function updateUser(id: number, totalAmount: number, purchases: number[]): void {
+export function updateUser(
+    id: number,
+    totalAmount: number,
+    purchases: number[],
+    timezoneOffset: number
+): void {
     const query = `
         UPDATE users
-        SET totalAmount = ?, purchases = ?
+        SET totalAmount = ?, purchases = ?, timezoneOffset = ?
         WHERE id = ?`;
-    db.prepare(query).run(totalAmount, JSON.stringify(purchases), id);
+    db.prepare(query).run(totalAmount, JSON.stringify(purchases), timezoneOffset, id);
 }
 
 export function deleteUser(id: number): void {
@@ -48,5 +59,6 @@ export interface User {
     days: number;
     startDate: string;
     purchases: string;
+    timezoneOffset: number;
 }
 
