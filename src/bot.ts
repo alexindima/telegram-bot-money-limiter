@@ -1,6 +1,8 @@
 import { Telegraf } from 'telegraf';
 import * as dotenv from 'dotenv';
-import { saveUser, getUser, updateUser, deleteUser, User } from './db';
+import { saveUser, getUser, updateUser, deleteUser } from './db';
+import { BudgetInfo } from "./interfaces/budget-info.interface";
+import { User } from "./interfaces/user.interface";
 
 const DEFAULT_TIMEZONE = 4; // UTC+4
 
@@ -96,7 +98,6 @@ bot.command('report', (ctx) => {
         .join('\n');
     ctx.reply(`Ваши покупки:\n${report}`);
 });
-
 
 bot.command('status', (ctx) => {
     const userId = ctx.from?.id;
@@ -258,7 +259,11 @@ bot.command('settimezone', (ctx) => {
 
     updateUser(userId, user.totalAmount, JSON.parse(user.purchases || '[]'), timezoneOffset);
 
-    ctx.reply(`Ваш часовой пояс установлен: UTC${timezoneOffset >= 0 ? `+${timezoneOffset.toFixed(2)}` : timezoneOffset.toFixed(2)}.`);
+    ctx.reply(`Ваш часовой пояс установлен: UTC${
+        timezoneOffset >= 0
+            ? `+${timezoneOffset.toFixed(2)}`
+            : timezoneOffset.toFixed(2)
+    }.`);
 });
 
 bot.command('stop', (ctx) => {
@@ -361,12 +366,5 @@ function calculateBudget(user: User): BudgetInfo {
     };
 }
 
-
-
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
-
-export interface BudgetInfo {
-    remainingDays: number;
-    dailyBudget: string;
-}
