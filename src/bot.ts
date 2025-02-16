@@ -133,7 +133,11 @@ bot.command('status', (ctx) => {
         response += `\nСредний бюджет на следующие дни без новых покупок сегодня: ${futureDailyBudget}.`;
     }
 
-    response += `\nДо следующего дня осталось: ${hoursUntilNextDay} часов и ${minutesUntilNextDay} минут.`;
+    if (remainingDays === 0) {
+        response += `\nВаш бюджет завершён! Используйте /setdays для продления или /stop для остановки.`;
+    } else {
+        response += `\nДо следующего дня осталось: ${hoursUntilNextDay} часов и ${minutesUntilNextDay} минут.`;
+    }
 
     ctx.reply(response);
 });
@@ -291,6 +295,12 @@ bot.hears(/.*/, (ctx) => {
         return;
     }
 
+    const { remainingDays } = calculateBudget(user);
+    if (remainingDays <= 0) {
+        ctx.reply('Бюджет завершён! Невозможно добавить новую покупку.');
+        return;
+    }
+
     const message = ctx.message.text;
 
     if (user.totalAmount === 0) {
@@ -357,14 +367,15 @@ function calculateBudget(user: User): BudgetInfo {
     const startOfStartDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
 
     const daysPassed = Math.floor((startOfToday.getTime() - startOfStartDate.getTime()) / (1000 * 60 * 60 * 24));
-    const remainingDays = Math.max(user.days - daysPassed, 1);
-    const dailyBudget = (user.totalAmount / remainingDays).toFixed(2);
+    let remainingDays = Math.max(user.days - daysPassed, 0);
+    let dailyBudget = remainingDays > 0 ? (user.totalAmount / remainingDays).toFixed(2) : "0.00";
 
     return {
         remainingDays,
         dailyBudget
     };
 }
+
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
